@@ -1,0 +1,10 @@
+{
+  "Id": "IndicatorExporter",
+  "DisplayName": "IndicatorExporter",
+  "Version": "0.0.1",
+  "Author": "fortranie",
+  "ManagerVersion": "0.27.3",
+  "Requirements": [],
+  "EntryMethod": "IndicatorExporter.Main.Load"
+}
+
