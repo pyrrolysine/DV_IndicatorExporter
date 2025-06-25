@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <LangVersion>6</LangVersion>
+        <TargetFramework>net46</TargetFramework>
+    </PropertyGroup>
+
+    <!-- Derail Valley -->
+    <ItemGroup>
+        <Reference Include="Assembly-CSharp">
+            <HintPath>../../../.steam/steam/steamapps/common/Derail Valley/DerailValley_Data/Managed/Assembly-CSharp.dll</HintPath>
+        </Reference>
+        <Reference Include="DV.ThingTypes">
+            <HintPath>../../../.steam/steam/steamapps/common/Derail Valley/DerailValley_Data/Managed/DV.ThingTypes.dll</HintPath>
+        </Reference>
+        <Reference Include="WorldStreamer">
+            <HintPath>../../../.steam\steam\steamapps\common\Derail Valley\DerailValley_Data\Managed\WorldStreamer.dll</HintPath>
+        </Reference>
+        <Reference Include="DV.Utils">
+            <HintPath>../../../.steam\steam\steamapps\common\Derail Valley\DerailValley_Data\Managed\DV.Utils.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+    
+    <!-- UnityModManager -->
+    <ItemGroup>
+        <Reference Include="UnityModManagerNet" Version="0.0.0.0">
+            <HintPath>../../../.steam/steam/steamapps/common/Derail Valley/DerailValley_Data/Managed/UnityModManager/UnityModManager.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+
+    <!-- Unity -->
+    <ItemGroup>
+        <Reference Include="UnityEngine.CoreModule" Version="0.0.0.0">
+            <HintPath>../../../.steam/steam/steamapps/common/Derail Valley/DerailValley_Data/Managed/UnityEngine.CoreModule.dll</HintPath>
+        </Reference>
+        <Reference Include="UnityEngine.PhysicsModule" Version="0.0.0.0">
+            <HintPath>../../../.steam/steam/steamapps/common/Derail Valley/DerailValley_Data/Managed/UnityEngine.PhysicsModule.dll</HintPath>
+        </Reference>
+    </ItemGroup>
+</Project>
