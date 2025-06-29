@@ -13,7 +13,8 @@ print("Bound")
 
 try:
     while True:
-        print(server.recvfrom(0x10000))
+        data, addr = server.recvfrom(0x10000)
+        print(data.decode('ascii'))
 except BaseException as ex:
     print(ex)
 
