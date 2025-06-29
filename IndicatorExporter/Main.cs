@@ -5,13 +5,14 @@ using System.Text;
 using System.Timers;
 using System.Net;
 using System.Net.Sockets;
-
+using DV.CabControls;
 using DV.HUD;
 using DV.Utils;
 
 using UnityModManagerNet;
 
 using TinyJson;
+using UnityEngine;
 
 
 namespace IndicatorExporter
@@ -126,47 +127,21 @@ namespace IndicatorExporter
                 }
             }
         }
-        
+
         private static void SendPacket(TrainCar loco)
         {
             Dictionary<String, String> data = new Dictionary<String, String>();
-            
-            data.Add("vehicle", loco.CarGUID);
-            
-            if(settings.SendForce && loco.SimController != null)
-                data.Add("force", loco.SimController.drivingForce.generatedForce.ToString("G"));
-            
-            if(settings.SendThrottle && loco.SimController != null)
-                data.Add("throttle", loco.SimController.controlsOverrider.Throttle.Value.ToString("G"));
-            
-            if(settings.SendSpeed)
-                data.Add("speed", loco.GetForwardSpeed().ToString("G"));
 
-            if (settings.SendWeight)
-            {
-                float weight = 0.0f;
-                foreach (TrainCar car in loco.trainset.cars)
-                {
-                    weight += car.massController.TotalMass;
-                }
-                data.Add("weight",  weight.ToString("G"));
-            }
-
-            if(settings.SendRPM && loco.interior != null && loco.interior.GetComponent<InteriorControlsManager>() != null)
-                data.Add("rpm", loco.interior.GetComponent<InteriorControlsManager>().indicatorReader.engineRpm.Value.ToString());
-
-            if(settings.SendCarType)
-                data.Add("plate", loco.GetComponent<TrainCarPlatesController>().carTypeText.ToString());
-
-            if(settings.SendPosition)
-                data.Add("position", (loco.transform.position - WorldMover.currentMove).ToString());
+            populateGenerics(data, loco);
+            populateDiesel(data, loco);
+            populateSteam(data, loco);
 
             string json = data.ToJson();
-            
-            if(settings.DebugTimer)
+
+            if (settings.DebugTimer)
                 Main.logger.Log("Sending data: " + json);
-            
-            byte[] buffer = ASCIIEncoding.UTF8.GetBytes(json);
+
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
 
             try
             {
@@ -177,6 +152,114 @@ namespace IndicatorExporter
                 logger.Error("Could not send packet: " + e.ToString());
                 logger.Log(e.StackTrace);
             }
+        }
+
+        private static void populateGenerics(Dictionary<string, string> data, TrainCar loco)
+        {
+            data.Add("vehicle", loco.CarGUID);
+
+            if(settings.SendForce && loco.SimController != null)
+                data.Add("force", loco.SimController.drivingForce.generatedForce.ToString("G"));
+
+            if(settings.SendSpeed)
+                data.Add("speed", loco.GetForwardSpeed().ToString("G"));
+
+            if (settings.SendWeight)
+            {
+                float weight = 0.0f;
+                foreach (TrainCar car in loco.trainset.cars)
+                {
+                    weight += car.massController.TotalMass;
+                }
+                data.Add("weight", weight.ToString("G"));
+            }
+
+            if(settings.SendCarType)
+                data.Add("plate", loco.GetComponent<TrainCarPlatesController>().carTypeText);
+
+            if(settings.SendPosition)
+                data.Add("position", (loco.transform.position - WorldMover.currentMove).ToString("G"));
+
+            if (settings.SendGrade)
+            {
+                Vector3 bogie1 = loco.FrontBogie.transform.position;
+                Vector3 bogie2 = loco.RearBogie.transform.position;
+                float heightDiff = bogie1.y - bogie2.y;
+                float bogieDistance = (bogie1 - bogie2).magnitude;
+                float grade = heightDiff / bogieDistance;
+                data.Add("grade", grade.ToString("G"));
+            }
+
+            if (settings.SendGradeAvg)
+            {
+                float mass = 0.0f;
+                float weightedGrade = 0.0f;
+
+                foreach (TrainCar car in loco.trainset.cars)
+                {
+                    Vector3 bogie1 = loco.FrontBogie.transform.position;
+                    Vector3 bogie2 = loco.RearBogie.transform.position;
+                    float heightDiff = bogie1.y - bogie2.y;
+                    float bogieDistance = (bogie1 - bogie2).magnitude;
+                    float grade = heightDiff / bogieDistance;
+                    mass += car.massController.TotalMass;
+                    weightedGrade += car.massController.TotalMass * grade;
+                }
+
+                data.Add("train_grade", (weightedGrade / mass).ToString("G"));
+            }
+
+            if(settings.SendThrottle && loco.SimController != null)
+                data.Add("throttle", loco.SimController.controlsOverrider.Throttle.Value.ToString("G"));
+        }
+
+        private static void populateDiesel(Dictionary<String, String> data, TrainCar loco)
+        {
+            if (loco.loadedInterior != null && loco.loadedInterior.GetComponent<InteriorControlsManager>() != null)
+            {
+                InteriorControlsManager ctls = loco.loadedInterior.GetComponent<InteriorControlsManager>();
+
+                if (ctls.indicatorReader != null)
+                {
+                    if (settings.SendRPM && ctls.indicatorReader.engineRpm != null)
+                        data.Add("rpm", ctls.indicatorReader.engineRpm.Value.ToString("G"));
+
+                    if (settings.SendDrivetrainRPM && ctls.indicatorReader.turbineRpmMeter != null)
+                        data.Add("drive_rpm", ctls.indicatorReader.turbineRpmMeter.Value.ToString("G"));
+
+                    if (settings.SendGearState)
+                    {
+                        ControlImplBase gearboxA = null;
+                        ctls.GetComponent<LocoControlsReader>()?.gearboxA?.TryGetComponent<ControlImplBase>(out gearboxA);
+                        if (gearboxA != null)
+                        {
+                            data.Add("gear1", gearboxA.Value.ToString("G"));
+                        }
+
+                        ControlImplBase gearboxB = null;
+                        ctls.GetComponent<LocoControlsReader>()?.gearboxB?.TryGetComponent<ControlImplBase>(out gearboxB);
+                        if (gearboxB != null)
+                        {
+                            data.Add("gear2", gearboxB.Value.ToString("G"));
+                        }
+                    }
+                }
+            }
+        }
+
+        private static void populateSteam(Dictionary<String, String> data, TrainCar loco)
+        {
+            if(settings.SendReverser
+               && loco.SimController?.controlsOverrider.Reverser != null)
+                data.Add("reverser", loco.SimController.controlsOverrider.Reverser.Value.ToString("G"));
+
+            if(settings.SendPressureBoiler
+               && loco.loadedInterior?.GetComponent<InteriorControlsManager>()?.indicatorReader.steam != null)
+                data.Add("boiler_p", loco.loadedInterior.GetComponent<InteriorControlsManager>().indicatorReader.steam.Value.ToString("G"));
+
+            if(settings.SendPressureChest
+               && loco.loadedInterior?.GetComponent<InteriorControlsManager>()?.indicatorReader.steamChest != null)
+                data.Add("chest_p", loco.loadedInterior.GetComponent<InteriorControlsManager>().indicatorReader.steamChest.Value.ToString("G"));
         }
 
         public static bool OnUnload(UnityModManager.ModEntry modEntry)
@@ -226,21 +309,36 @@ namespace IndicatorExporter
 
     public class Settings : UnityModManager.ModSettings, IDrawable
     {
+        [Header("Behavior")]
         [Draw("Enable", DrawType.Toggle)] public bool Active = false;
-
-        [Draw("UDP endpoint host", DrawType.Field)] public string UdpHost = "localhost";
-        [Draw("UDP endpoint port", DrawType.Field)] public int UdpPort = 10000;
-
         [Draw("Update interval (ms)", DrawType.Field)] public int TimeoutMilliseconds = 10000;
         [Draw("Debug Timer", DrawType.Toggle)] public bool DebugTimer = true;
 
+        [Header("Endpoint")]
+        [Draw("UDP endpoint host", DrawType.Field)] public string UdpHost = "localhost";
+        [Draw("UDP endpoint port", DrawType.Field)] public int UdpPort = 10000;
+
+        [Header("All locomotives")]
         [Draw("Vehicle type", DrawType.Toggle)] public bool SendCarType = true;
         [Draw("Vehicle position", DrawType.Toggle)] public bool SendPosition = true;
+        [Draw("Track grade", DrawType.Toggle)] public bool SendGrade = false;
+        [Draw("Train-averaged track grade", DrawType.Toggle)] public bool SendGradeAvg = false;
         [Draw("Vehicle speed", DrawType.Toggle)] public bool SendSpeed = true;
         [Draw("Train weight (tonnage)", DrawType.Toggle)] public bool SendWeight = true;
-        [Draw("Engine RPM", DrawType.Toggle)] public bool SendRPM = true;
-        [Draw("Traction force", DrawType.Toggle)] public bool SendForce = false;
         [Draw("Throttle level", DrawType.Toggle)] public bool SendThrottle = false;
+        [Draw("Traction force", DrawType.Toggle)] public bool SendForce = false;
+
+        [Header("Diesel engines")]
+        [Draw("Engine RPM", DrawType.Toggle)] public bool SendRPM = true;
+        [Draw("Drivetrain RPM", DrawType.Toggle)] public bool SendDrivetrainRPM = true;
+        // TODO: gearbox controls are hard to pinpoint 
+        // [Draw("Gearbox setting", DrawType.Toggle)]
+        public bool SendGearState = false;
+
+        [Header("Steam engines")]
+        [Draw("Reverser", DrawType.Toggle)] public bool SendReverser = false;
+        [Draw("Boiler pressure", DrawType.Toggle)] public bool SendPressureBoiler = false;
+        [Draw("Chest pressure", DrawType.Toggle)] public bool SendPressureChest = false;
 
         public override void Save(UnityModManager.ModEntry modEntry)
         {
