@@ -197,8 +197,8 @@ namespace IndicatorExporter
 
                 foreach (TrainCar car in loco.trainset.cars)
                 {
-                    Vector3 bogie1 = loco.FrontBogie.transform.position;
-                    Vector3 bogie2 = loco.RearBogie.transform.position;
+                    Vector3 bogie1 = car.FrontBogie.transform.position;
+                    Vector3 bogie2 = car.RearBogie.transform.position;
                     float heightDiff = bogie1.y - bogie2.y;
                     float bogieDistance = (bogie1 - bogie2).magnitude;
                     float grade = heightDiff / bogieDistance;

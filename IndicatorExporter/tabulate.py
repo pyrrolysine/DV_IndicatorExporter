@@ -14,6 +14,7 @@ default_fields = [
     'rpm', 'gear1', 'gear2', 'throttle',
     'force', 'acceleration',
     'reverser', 'boiler_p', 'chest_p',
+    'train_grade',
 ]
 
 fields = {key: None for key in default_fields}
