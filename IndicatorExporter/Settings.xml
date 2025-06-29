@@ -1,15 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <Active>true</Active>
+  <Active>false</Active>
+  <TimeoutMilliseconds>500</TimeoutMilliseconds>
+  <DebugTimer>false</DebugTimer>
+  <WriteToFile>true</WriteToFile>
+  <Directory>C:\</Directory>
+  <SendUDPPacket>false</SendUDPPacket>
   <UdpHost>127.0.0.1</UdpHost>
   <UdpPort>10000</UdpPort>
-  <TimeoutMilliseconds>1000</TimeoutMilliseconds>
-  <DebugTimer>false</DebugTimer>
   <SendCarType>true</SendCarType>
   <SendPosition>true</SendPosition>
+  <SendGrade>true</SendGrade>
+  <SendGradeAvg>true</SendGradeAvg>
   <SendSpeed>true</SendSpeed>
-  <SendRPM>true</SendRPM>
   <SendWeight>true</SendWeight>
-  <SendForce>true</SendForce>
   <SendThrottle>true</SendThrottle>
+  <SendForce>true</SendForce>
+  <SendRPM>true</SendRPM>
+  <SendDrivetrainRPM>true</SendDrivetrainRPM>
+  <SendGearState>false</SendGearState>
+  <SendReverser>true</SendReverser>
+  <SendPressureBoiler>true</SendPressureBoiler>
+  <SendPressureChest>true</SendPressureChest>
 </Settings>

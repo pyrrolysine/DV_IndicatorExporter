@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 
 using System.Timers;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Policy;
 using DV.CabControls;
 using DV.HUD;
 using DV.Utils;
@@ -22,6 +24,10 @@ namespace IndicatorExporter
     {
         private static Settings settings;
         private static Socket socket;
+        
+        private static StreamWriter outputFd;
+        private static string outputFdLoco;
+
         private static Timer timer;
 
         private static UnityModManager.ModEntry.ModLogger logger;
@@ -35,6 +41,8 @@ namespace IndicatorExporter
             {
                 settings = new Settings();
             }
+
+            outputFdLoco = "";
             
             try
             {
@@ -111,7 +119,7 @@ namespace IndicatorExporter
 
                         try
                         {
-                            SendPacket(loco);
+                            LogData(loco);
                         }
                         catch (Exception ex)
                         {
@@ -128,7 +136,7 @@ namespace IndicatorExporter
             }
         }
 
-        private static void SendPacket(TrainCar loco)
+        private static void LogData(TrainCar loco)
         {
             Dictionary<String, String> data = new Dictionary<String, String>();
 
@@ -141,10 +149,22 @@ namespace IndicatorExporter
             if (settings.DebugTimer)
                 Main.logger.Log("Sending data: " + json);
 
-            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            if (settings.SendUDPPacket)
+            {
+                SendPacket(json);
+            }
 
+            if (settings.WriteToFile)
+            {
+                LogToFile(data, json);
+            }
+        }
+
+        private static void SendPacket(string json)
+        {
             try
             {
+                byte[] buffer = Encoding.UTF8.GetBytes(json);
                 socket.SendTo(buffer, new IPEndPoint(IPAddress.Parse(settings.UdpHost), settings.UdpPort));
             }
             catch (Exception e)
@@ -152,6 +172,29 @@ namespace IndicatorExporter
                 logger.Error("Could not send packet: " + e.ToString());
                 logger.Log(e.StackTrace);
             }
+        }
+
+        private static void LogToFile(Dictionary<String, String> data, string json)
+        {
+            if (data["vehicle"] != outputFdLoco)
+            {
+                if(outputFd != null)
+                    outputFd.Close();
+
+                outputFdLoco = data["vehicle"];
+            }
+
+            if (outputFd == null)
+            {
+                outputFd = new StreamWriter(GetLocoFilePath(data["plate"] + "_" + data["vehicle"]), append: true);
+            }
+
+            outputFd.Write(json + "\n");
+        }
+
+        private static string GetLocoFilePath(string name)
+        {
+            return settings.Directory + "\\" + name;
         }
 
         private static void populateGenerics(Dictionary<string, string> data, TrainCar loco)
@@ -309,12 +352,17 @@ namespace IndicatorExporter
 
     public class Settings : UnityModManager.ModSettings, IDrawable
     {
-        [Header("Behavior")]
-        [Draw("Enable", DrawType.Toggle)] public bool Active = false;
-        [Draw("Update interval (ms)", DrawType.Field)] public int TimeoutMilliseconds = 10000;
-        [Draw("Debug Timer", DrawType.Toggle)] public bool DebugTimer = true;
+        [Header("Sampling rate")]
+        [Draw("Enable sampling", DrawType.Toggle)] public bool Active = false;
+        [Draw("Update interval (ms)", DrawType.Field)] public int TimeoutMilliseconds = 100;
+        [Draw("Debug (verbose)", DrawType.Toggle)] public bool DebugTimer = false;
 
-        [Header("Endpoint")]
+        [Header("Output to file")]
+        [Draw("Write to local file", DrawType.Toggle)] public bool WriteToFile = true;
+        [Draw("Folder to put logs in", DrawType.Field)] public string Directory = "C:\\";
+
+        [Header("Network settings")]
+        [Draw("Enable UDP client", DrawType.Toggle)] public bool SendUDPPacket = false;
         [Draw("UDP endpoint host", DrawType.Field)] public string UdpHost = "localhost";
         [Draw("UDP endpoint port", DrawType.Field)] public int UdpPort = 10000;
 
